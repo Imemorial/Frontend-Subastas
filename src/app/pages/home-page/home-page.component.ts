@@ -444,18 +444,6 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
           </div>
 
-
-
-          @if (!isAuthenticated()) {
-
-            <a routerLink="/register" class="btn-neon-primary animate-cta-pulse px-5 py-2.5 text-sm">
-
-              Crear cuenta y pujar
-
-            </a>
-
-          }
-
         </div>
 
 
@@ -592,7 +580,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
                     <p class="text-sm text-gray-400">
 
-                      Valor:
+                      Valor en tienda:
 
                       <span class="font-bold text-gold">
 

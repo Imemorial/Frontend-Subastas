@@ -143,7 +143,7 @@ const BIT_PRESETS = [1, 5, 10, 20, 50] as const;
         <button
           type="button"
           class="btn-neon-primary animate-cta-pulse mt-auto w-full"
-          [disabled]="isBidding() || !canAffordSelected()"
+          [disabled]="isBidding() || (isAuthenticated() && !canAffordSelected())"
           (click)="onBid()"
         >
           @if (isBidding()) {
@@ -202,7 +202,9 @@ export class AuctionCardComponent {
       'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=450&fit=crop',
   );
 
-  readonly retailValue = computed(() => this.auction().product.retailValue);
+  readonly retailValue = computed(
+    () => this.auction().product.realCost ?? this.auction().product.retailValue,
+  );
 
   readonly savingsAmount = computed(() => Math.max(0, this.retailValue() - this.currentPrice()));
 
@@ -258,7 +260,7 @@ export class AuctionCardComponent {
 
   onBid(): void {
     if (!this.isAuthenticated()) {
-      void this.router.navigate(['/register']);
+      void this.router.navigate(['/login']);
       return;
     }
 

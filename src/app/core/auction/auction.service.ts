@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, catchError, map, of, switchMap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
+import { resolveStorageUrl } from '../http/asset-url';
 import { AuctionSummary } from '../../shared/models/auction.model';
 import { ApiAuction } from './auction-api.models';
 
@@ -108,7 +109,7 @@ export class AuctionService {
               id: auction.id,
               productName: auction.product.name,
               productImageUrl: this.resolveProductImage(auction.product),
-              retailValue: auction.product.retail_value ?? 0,
+              retailValue: this.shopValue(auction.product),
               scheduledAt: auction.scheduled_at ? new Date(auction.scheduled_at) : null,
               currentPrice: auction.current_price,
             })),
@@ -117,7 +118,7 @@ export class AuctionService {
   }
 
   private toAuctionSummary(auction: ApiAuction): AuctionSummary {
-    const retailValue = auction.product.retail_value ?? 0;
+    const shopValue = this.shopValue(auction.product);
 
     return {
       id: auction.id,
@@ -125,7 +126,7 @@ export class AuctionService {
         id: auction.product.id,
         name: auction.product.name,
         imageUrl: this.resolveProductImage(auction.product),
-        retailValue,
+        retailValue: shopValue,
         realCost: auction.product.real_cost,
       },
       currentPrice: auction.current_price,
@@ -141,31 +142,31 @@ export class AuctionService {
             avatarUrl: this.avatarUrl(auction.last_bidder.name),
           }
         : null,
-      discountPercent: this.discountPercent(retailValue, auction.current_price),
+      discountPercent: this.discountPercent(shopValue, auction.current_price),
     };
   }
 
   private toRecentWin(auction: ApiAuction): RecentWin {
-    const retailValue = auction.product.retail_value ?? 0;
+    const shopValue = this.shopValue(auction.product);
     const winnerName = auction.winner?.name ?? 'Ganador';
 
     return {
       id: auction.id,
       productName: auction.product.name,
       productImageUrl: this.resolveProductImage(auction.product),
-      retailValue,
+      retailValue: shopValue,
       finalPrice: auction.current_price,
       winnerName,
       winnerAvatarUrl: this.avatarUrl(winnerName),
       totalBids: auction.total_bids,
       endedAt: auction.ended_at ? new Date(auction.ended_at) : null,
-      discountPercent: this.discountPercent(retailValue, auction.current_price),
+      discountPercent: this.discountPercent(shopValue, auction.current_price),
     };
   }
 
   private toFeaturedWin(item: FeaturedWinnerApi): RecentWin {
     const imageUrl =
-      item.image_url ??
+      resolveStorageUrl(item.image_url) ??
       'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=450&fit=crop';
 
     return {
@@ -175,7 +176,7 @@ export class AuctionService {
       retailValue: item.retail_value,
       finalPrice: item.final_price,
       winnerName: item.winner_name,
-      winnerAvatarUrl: item.image_url ?? this.avatarUrl(item.winner_name),
+      winnerAvatarUrl: resolveStorageUrl(item.image_url) ?? this.avatarUrl(item.winner_name),
       totalBids: 0,
       endedAt: null,
       discountPercent: item.discount_percent,
@@ -185,12 +186,16 @@ export class AuctionService {
 
   private resolveProductImage(product: ApiAuction['product']): string {
     const urls = product.image_urls ?? [];
-    if (urls.length > 0) {
-      return urls[0];
+    for (const url of urls) {
+      const resolved = resolveStorageUrl(url);
+      if (resolved) {
+        return resolved;
+      }
     }
 
-    if (product.image_url) {
-      return product.image_url;
+    const resolvedPrimary = resolveStorageUrl(product.image_url);
+    if (resolvedPrimary) {
+      return resolvedPrimary;
     }
 
     return (
@@ -201,6 +206,10 @@ export class AuctionService {
 
   private avatarUrl(name: string): string {
     return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name)}`;
+  }
+
+  private shopValue(product: Pick<ApiAuction['product'], 'real_cost' | 'retail_value'>): number {
+    return product.real_cost ?? product.retail_value ?? 0;
   }
 
   private discountPercent(retailValue: number, finalPrice: number): number {

@@ -220,29 +220,93 @@ import {
 
             <label class="mb-2 block text-sm text-gray-300">Producto</label>
 
-            <select
+            @if (products().length === 0) {
 
-              formControlName="product_id"
+              <p class="rounded-xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-gray-400">
 
-              class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-gold/50"
+                No hay productos disponibles. Crea uno en la sección Productos.
 
-              (change)="onProductChange()"
+              </p>
 
-            >
+            } @else if (availableProducts().length === 0) {
 
-              <option value="" disabled>Selecciona un producto</option>
+              <p class="rounded-xl border border-dashed border-white/10 px-4 py-8 text-center text-sm text-gray-400">
 
-              @for (product of products(); track product.id) {
+                Todos los productos publicados ya tienen una subasta activa o programada.
 
-                <option [value]="product.id">
+              </p>
 
-                  {{ product.name }} — coste {{ product.real_cost | currency: 'EUR' : 'symbol' : '1.2-2' : 'es' }}
+            } @else {
 
-                </option>
+              <div class="grid max-h-[28rem] gap-3 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3">
 
-              }
+                @for (product of availableProducts(); track product.id) {
 
-            </select>
+                  <button
+
+                    type="button"
+
+                    class="flex gap-3 rounded-xl border p-3 text-left transition hover:border-gold/40 hover:bg-white/[0.04]"
+
+                    [class]="productCardClass(product.id)"
+
+                    (click)="selectProduct(product)"
+
+                  >
+
+                    <img
+
+                      [src]="productImage(product)"
+
+                      [alt]="product.name"
+
+                      class="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-white/10"
+
+                    />
+
+                    <div class="min-w-0 flex-1">
+
+                      <p class="truncate font-semibold text-white">{{ product.name }}</p>
+
+                      <p class="mt-1 text-xs text-gray-400">
+
+                        Coste / valor en tienda:
+
+                        <span class="font-medium text-gray-200">
+
+                          {{ product.real_cost | currency: 'EUR' : 'symbol' : '1.2-2' : 'es' }}
+
+                        </span>
+
+                      </p>
+
+                      <span
+
+                        class="mt-2 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
+
+                        [class]="productStatusClass(product.status)"
+
+                      >
+
+                        {{ product.status }}
+
+                      </span>
+
+                    </div>
+
+                  </button>
+
+                }
+
+              </div>
+
+            }
+
+            @if (form.controls.product_id.invalid && form.controls.product_id.touched) {
+
+              <p class="mt-2 text-xs text-amber-300">Selecciona un producto para continuar.</p>
+
+            }
 
           </div>
 
@@ -510,35 +574,59 @@ import {
 
                 <div class="flex flex-wrap items-start justify-between gap-4">
 
-                  <div>
+                  <div class="flex min-w-0 flex-1 gap-4">
 
-                    <p class="font-semibold text-white">{{ auction.product.name }}</p>
+                    <img
 
-                    <p class="text-sm text-gray-400">
+                      [src]="auctionProductImage(auction)"
 
-                      Precio: {{ auction.current_price | currency: 'EUR' : 'symbol' : '1.2-2' : 'es' }}
+                      [alt]="auctionProductName(auction)"
 
-                      · {{ auction.total_bids }} pujas
+                      class="h-16 w-16 shrink-0 rounded-lg object-cover ring-1 ring-white/10"
 
-                    </p>
+                    />
 
-                    @if (auction.scheduled_at && auction.status === 'scheduled') {
+                    <div class="min-w-0">
 
-                      <p class="mt-1 text-xs text-neon-cyan">
+                      <p class="truncate font-semibold text-white">{{ auctionProductName(auction) }}</p>
 
-                        Programada: {{ auction.scheduled_at | date: 'dd/MM/yyyy HH:mm' : undefined : 'es' }}
+                      <p class="text-sm text-gray-400">
+
+                        Precio: {{ auction.current_price | currency: 'EUR' : 'symbol' : '1.2-2' : 'es' }}
+
+                        · {{ auction.total_bids }} pujas
 
                       </p>
 
-                    }
+                      @if (auction.scheduled_at && auction.status === 'scheduled') {
 
-                    <div class="mt-2 flex flex-wrap gap-2">
+                        <p class="mt-1 text-xs text-neon-cyan">
 
-                      <span class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase" [class]="statusClass(auction.status)">
+                          Programada: {{ auction.scheduled_at | date: 'dd/MM/yyyy HH:mm' : undefined : 'es' }}
 
-                        {{ auction.status }}
+                        </p>
 
-                      </span>
+                      }
+
+                      @if (auction.status === 'active' && auction.ends_at) {
+
+                        <p class="mt-1 text-xs text-neon-emerald">
+
+                          En directo · termina {{ auction.ends_at | date: 'dd/MM HH:mm' : undefined : 'es' }}
+
+                        </p>
+
+                      }
+
+                      <div class="mt-2 flex flex-wrap gap-2">
+
+                        <span class="rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase" [class]="statusClass(auction.status)">
+
+                          {{ auction.status }}
+
+                        </span>
+
+                      </div>
 
                     </div>
 
@@ -680,6 +768,21 @@ export class AdminAuctionsPageComponent implements OnInit {
 
 
 
+  readonly availableProducts = computed(() => {
+    const busyProductIds = new Set(
+      this.auctions()
+        .filter((auction) => ['active', 'scheduled', 'paused', 'draft'].includes(auction.status))
+        .map((auction) => auction.product?.id)
+        .filter((id): id is number => id != null),
+    );
+
+    return this.products().filter(
+      (product) => product.status !== 'archived' && !busyProductIds.has(product.id),
+    );
+  });
+
+
+
   readonly form = this.formBuilder.nonNullable.group({
 
     product_id: ['', Validators.required],
@@ -781,6 +884,90 @@ export class AdminAuctionsPageComponent implements OnInit {
       });
 
     }
+
+  }
+
+
+
+  selectProduct(product: AdminProduct): void {
+
+    this.form.controls.product_id.setValue(String(product.id));
+
+    this.form.controls.product_id.markAsTouched();
+
+    this.onProductChange();
+
+  }
+
+
+
+  isProductSelected(productId: number): boolean {
+
+    return Number(this.form.controls.product_id.value) === productId;
+
+  }
+
+
+
+  productCardClass(productId: number): string {
+
+    return this.isProductSelected(productId)
+
+      ? 'border-gold bg-gold/10 ring-1 ring-gold/30'
+
+      : 'border-white/10 bg-white/[0.02]';
+
+  }
+
+
+
+  productImage(product: AdminProduct): string {
+
+    return (
+
+      product.image_urls[0] ??
+
+      product.image_url ??
+
+      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=128&h=128&fit=crop'
+
+    );
+
+  }
+
+
+
+  productStatusClass(status: AdminProduct['status']): string {
+
+    if (status === 'published') return 'bg-neon-emerald/20 text-neon-emerald';
+
+    if (status === 'draft') return 'bg-gray-500/20 text-gray-300';
+
+    return 'bg-amber-500/20 text-amber-200';
+
+  }
+
+
+
+  auctionProductName(auction: AdminAuction): string {
+
+    return auction.product?.name ?? 'Producto no disponible';
+
+  }
+
+
+
+  auctionProductImage(auction: AdminAuction): string {
+
+    const product = auction.product;
+
+    if (!product) {
+
+      return 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=128&h=128&fit=crop';
+
+    }
+
+    return this.productImage(product);
 
   }
 
@@ -944,7 +1131,17 @@ export class AdminAuctionsPageComponent implements OnInit {
 
   private loadProducts(): void {
 
-    this.adminService.getProducts().subscribe({ next: (p) => this.products.set(p) });
+    this.adminService.getProducts().subscribe({
+
+      next: (products) => {
+
+        this.products.set(products);
+
+        this.syncSelectedProduct();
+
+      },
+
+    });
 
   }
 
@@ -952,7 +1149,39 @@ export class AdminAuctionsPageComponent implements OnInit {
 
   private loadAuctions(): void {
 
-    this.adminService.getAuctions().subscribe({ next: (a) => this.auctions.set(a) });
+    this.adminService.getAuctions().subscribe({
+
+      next: (auctions) => {
+
+        this.auctions.set(auctions);
+
+        this.syncSelectedProduct();
+
+      },
+
+    });
+
+  }
+
+
+
+  private syncSelectedProduct(): void {
+
+    const selectedId = Number(this.form.controls.product_id.value);
+
+    if (!selectedId) {
+
+      return;
+
+    }
+
+    if (!this.availableProducts().some((product) => product.id === selectedId)) {
+
+      this.form.controls.product_id.setValue('');
+
+      this.auctionPreview.set(null);
+
+    }
 
   }
 

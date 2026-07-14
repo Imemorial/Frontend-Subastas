@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
+import { resolveStorageUrl } from '../http/asset-url';
 import {
   AdminAuction,
   AdminProduct,
@@ -10,6 +11,7 @@ import {
   WinnerShowcase,
   CreateWinnerShowcasePayload,
   CreateProductPayload,
+  UpdateProductPayload,
   MarginEvaluation,
   MarginPreview,
   PaginatedResponse,
@@ -25,7 +27,7 @@ export class AdminService {
   getProducts(): Observable<AdminProduct[]> {
     return this.http
       .get<PaginatedResponse<AdminProduct>>(`${this.baseUrl}/products`)
-      .pipe(map((r) => r.data));
+      .pipe(map((r) => r.data.map((product) => this.withResolvedImages(product))));
   }
 
   createProduct(payload: CreateProductPayload): Observable<AdminProduct> {
@@ -43,11 +45,29 @@ export class AdminService {
 
     return this.http
       .post<{ product: AdminProduct }>(`${this.baseUrl}/products`, formData)
-      .pipe(map((r) => r.product));
+      .pipe(map((r) => this.withResolvedImages(r.product)));
   }
 
   deleteProduct(id: number): Observable<void> {
     return this.http.delete(`${this.baseUrl}/products/${id}`).pipe(map(() => void 0));
+  }
+
+  updateProduct(id: number, payload: UpdateProductPayload): Observable<AdminProduct> {
+    const formData = new FormData();
+    if (payload.name != null) formData.append('name', payload.name);
+    if (payload.real_cost != null) formData.append('real_cost', String(payload.real_cost));
+    if (payload.description !== undefined) formData.append('description', payload.description);
+    if (payload.retail_value != null) formData.append('retail_value', String(payload.retail_value));
+    if (payload.sku) formData.append('sku', payload.sku);
+    if (payload.status) formData.append('status', payload.status);
+    if (payload.estimated_bits != null) formData.append('estimated_bits', String(payload.estimated_bits));
+    payload.images?.forEach((image, index) => {
+      formData.append(`images[${index}]`, image);
+    });
+
+    return this.http
+      .post<{ product: AdminProduct }>(`${this.baseUrl}/products/${id}`, formData)
+      .pipe(map((r) => this.withResolvedImages(r.product)));
   }
 
   addProductImages(id: number, images: File[]): Observable<AdminProduct> {
@@ -57,14 +77,14 @@ export class AdminService {
     });
 
     return this.http
-      .patch<{ product: AdminProduct }>(`${this.baseUrl}/products/${id}`, formData)
-      .pipe(map((r) => r.product));
+      .post<{ product: AdminProduct }>(`${this.baseUrl}/products/${id}`, formData)
+      .pipe(map((r) => this.withResolvedImages(r.product)));
   }
 
   getAuctions(): Observable<AdminAuction[]> {
     return this.http
       .get<PaginatedResponse<AdminAuction>>(`${this.baseUrl}/auctions`)
-      .pipe(map((r) => r.data));
+      .pipe(map((r) => r.data.map((auction) => this.withResolvedAuction(auction))));
   }
 
   createAuction(payload: CreateAuctionPayload): Observable<AdminAuction> {
@@ -124,7 +144,7 @@ export class AdminService {
   getWinnerShowcases(): Observable<WinnerShowcase[]> {
     return this.http
       .get<PaginatedResponse<WinnerShowcase>>(`${this.baseUrl}/winner-showcases`)
-      .pipe(map((r) => r.data));
+      .pipe(map((r) => r.data.map((showcase) => this.withResolvedShowcase(showcase))));
   }
 
   createWinnerShowcase(payload: CreateWinnerShowcasePayload): Observable<WinnerShowcase> {
@@ -140,7 +160,7 @@ export class AdminService {
 
     return this.http
       .post<{ showcase: WinnerShowcase }>(`${this.baseUrl}/winner-showcases`, formData)
-      .pipe(map((r) => r.showcase));
+      .pipe(map((r) => this.withResolvedShowcase(r.showcase)));
   }
 
   updateWinnerShowcase(id: number, payload: Partial<CreateWinnerShowcasePayload>): Observable<WinnerShowcase> {
@@ -155,11 +175,39 @@ export class AdminService {
     if (payload.image) formData.append('image', payload.image);
 
     return this.http
-      .patch<{ showcase: WinnerShowcase }>(`${this.baseUrl}/winner-showcases/${id}`, formData)
-      .pipe(map((r) => r.showcase));
+      .post<{ showcase: WinnerShowcase }>(`${this.baseUrl}/winner-showcases/${id}`, formData)
+      .pipe(map((r) => this.withResolvedShowcase(r.showcase)));
   }
 
   deleteWinnerShowcase(id: number): Observable<void> {
     return this.http.delete(`${this.baseUrl}/winner-showcases/${id}`).pipe(map(() => void 0));
+  }
+
+  private withResolvedImages(product: AdminProduct): AdminProduct {
+    return {
+      ...product,
+      image_url: resolveStorageUrl(product.image_url),
+      image_urls: product.image_urls
+        .map((url) => resolveStorageUrl(url))
+        .filter((url): url is string => url !== null),
+    };
+  }
+
+  private withResolvedShowcase(showcase: WinnerShowcase): WinnerShowcase {
+    return {
+      ...showcase,
+      image_url: resolveStorageUrl(showcase.image_url),
+    };
+  }
+
+  private withResolvedAuction(auction: AdminAuction): AdminAuction {
+    if (!auction.product) {
+      return auction;
+    }
+
+    return {
+      ...auction,
+      product: this.withResolvedImages(auction.product),
+    };
   }
 }

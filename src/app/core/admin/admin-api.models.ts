@@ -67,7 +67,7 @@ export interface AdminAuction {
   ends_at: string | null;
   started_at: string | null;
   ended_at: string | null;
-  product: AdminProduct;
+  product: AdminProduct | null;
 }
 
 export interface WeeklyMarginReport {
@@ -183,6 +183,17 @@ export interface CreateProductPayload {
   name: string;
   description?: string;
   real_cost: number;
+  retail_value?: number;
+  sku?: string;
+  status?: string;
+  estimated_bits?: number;
+  images?: File[];
+}
+
+export interface UpdateProductPayload {
+  name?: string;
+  description?: string;
+  real_cost?: number;
   retail_value?: number;
   sku?: string;
   status?: string;

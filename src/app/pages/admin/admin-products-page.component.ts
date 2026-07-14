@@ -26,9 +26,35 @@ import { AdminProduct, MarginPreview } from '../../core/admin/admin-api.models';
 
     <div class="grid gap-6 xl:grid-cols-2">
 
-      <section class="glass-card p-6">
+      <section class="glass-card p-6" id="product-form">
 
-        <h2 class="mb-2 font-display text-xl font-bold text-white">Nuevo producto</h2>
+        <div class="mb-2 flex flex-wrap items-center justify-between gap-3">
+
+          <h2 class="font-display text-xl font-bold text-white">
+
+            {{ editingProductId() ? 'Editar producto' : 'Nuevo producto' }}
+
+          </h2>
+
+          @if (editingProductId()) {
+
+            <button
+
+              type="button"
+
+              class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-gray-300 hover:bg-white/5"
+
+              (click)="cancelEdit()"
+
+            >
+
+              Cancelar edición
+
+            </button>
+
+          }
+
+        </div>
 
         <p class="mb-6 text-sm text-gray-400">
 
@@ -56,45 +82,23 @@ import { AdminProduct, MarginPreview } from '../../core/admin/admin-api.models';
 
 
 
-          <div class="grid gap-4 sm:grid-cols-2">
+          <div>
 
-            <div>
+            <label class="mb-2 block text-sm text-gray-300">Tu coste real (€) *</label>
 
-              <label class="mb-2 block text-sm text-gray-300">Tu coste real (€) *</label>
+            <input
 
-              <input
+              type="number"
 
-                type="number"
+              step="0.01"
 
-                step="0.01"
+              formControlName="real_cost"
 
-                formControlName="real_cost"
+              class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-gold/50"
 
-                class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-gold/50"
+            />
 
-              />
-
-              <p class="mt-1 text-xs text-gray-500">Lo que te cuesta a ti el producto</p>
-
-            </div>
-
-            <div>
-
-              <label class="mb-2 block text-sm text-gray-300">Valor de mercado (€)</label>
-
-              <input
-
-                type="number"
-
-                step="0.01"
-
-                formControlName="retail_value"
-
-                class="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white outline-none focus:border-gold/50"
-
-              />
-
-            </div>
+            <p class="mt-1 text-xs text-gray-500">Lo que te cuesta a ti el producto</p>
 
           </div>
 
@@ -145,6 +149,26 @@ import { AdminProduct, MarginPreview } from '../../core/admin/admin-api.models';
                   <img [src]="preview" alt="Vista previa" class="h-16 w-16 rounded-lg object-cover ring-1 ring-white/10" />
 
                 }
+
+              </div>
+
+            }
+
+            @if (existingImageUrls().length > 0) {
+
+              <div class="mt-3">
+
+                <p class="mb-2 text-xs text-gray-500">Fotos actuales</p>
+
+                <div class="flex flex-wrap gap-2">
+
+                  @for (url of existingImageUrls(); track url) {
+
+                    <img [src]="url" alt="Foto actual" class="h-16 w-16 rounded-lg object-cover ring-1 ring-white/10" />
+
+                  }
+
+                </div>
 
               </div>
 
@@ -264,11 +288,11 @@ import { AdminProduct, MarginPreview } from '../../core/admin/admin-api.models';
 
                   <div class="rounded-xl border border-white/10 bg-white/[0.03] p-3">
 
-                    <p class="text-[10px] uppercase tracking-wider text-gray-500">PVP mostrado</p>
+                    <p class="text-[10px] uppercase tracking-wider text-gray-500">Valor en tienda</p>
 
                     <p class="font-display text-lg font-bold text-white">
 
-                      {{ preview.strategy.recommended_retail_value | currency: 'EUR' : 'symbol' : '1.0-0' : 'es' }}
+                      {{ form.controls.real_cost.value | currency: 'EUR' : 'symbol' : '1.0-0' : 'es' }}
 
                     </p>
 
@@ -330,7 +354,19 @@ import { AdminProduct, MarginPreview } from '../../core/admin/admin-api.models';
 
           <button type="submit" class="btn-neon-primary w-full py-3" [disabled]="form.invalid || submitting()">
 
-            {{ submitting() ? 'Guardando...' : 'Guardar producto y estrategia' }}
+            {{
+
+              submitting()
+
+                ? 'Guardando...'
+
+                : editingProductId()
+
+                  ? 'Guardar cambios'
+
+                  : 'Guardar producto y estrategia'
+
+            }}
 
           </button>
 
@@ -356,7 +392,13 @@ import { AdminProduct, MarginPreview } from '../../core/admin/admin-api.models';
 
             @for (product of products(); track product.id) {
 
-              <div class="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+              <div
+
+                class="rounded-xl border p-4"
+
+                [class]="editingProductId() === product.id ? 'border-gold bg-gold/5' : 'border-white/[0.06] bg-white/[0.02]'"
+
+              >
 
                 <div class="flex items-start justify-between gap-4">
 
@@ -368,11 +410,7 @@ import { AdminProduct, MarginPreview } from '../../core/admin/admin-api.models';
 
                       Coste: {{ product.real_cost | currency: 'EUR' : 'symbol' : '1.2-2' : 'es' }}
 
-                      @if (product.retail_value) {
-
-                        · PVP: {{ product.retail_value | currency: 'EUR' : 'symbol' : '1.0-0' : 'es' }}
-
-                      }
+                      · Valor en tienda: {{ product.real_cost | currency: 'EUR' : 'symbol' : '1.0-0' : 'es' }}
 
                     </p>
 
@@ -402,19 +440,37 @@ import { AdminProduct, MarginPreview } from '../../core/admin/admin-api.models';
 
                   </div>
 
-                  <button
+                  <div class="flex shrink-0 gap-2">
 
-                    type="button"
+                    <button
 
-                    class="shrink-0 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10"
+                      type="button"
 
-                    (click)="deleteProduct(product)"
+                      class="rounded-lg border border-neon-cyan/30 px-3 py-1.5 text-xs text-neon-cyan hover:bg-neon-cyan/10"
 
-                  >
+                      (click)="editProduct(product)"
 
-                    Eliminar
+                    >
 
-                  </button>
+                      Editar
+
+                    </button>
+
+                    <button
+
+                      type="button"
+
+                      class="rounded-lg border border-red-500/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10"
+
+                      (click)="requestDelete(product)"
+
+                    >
+
+                      Eliminar
+
+                    </button>
+
+                  </div>
 
                 </div>
 
@@ -446,6 +502,92 @@ import { AdminProduct, MarginPreview } from '../../core/admin/admin-api.models';
 
     </div>
 
+
+
+    @if (productToDelete(); as product) {
+
+      <div
+
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
+
+        (click)="cancelDelete()"
+
+      >
+
+        <div
+
+          class="glass-card w-full max-w-md p-6 shadow-2xl"
+
+          role="dialog"
+
+          aria-modal="true"
+
+          aria-labelledby="delete-product-title"
+
+          (click)="$event.stopPropagation()"
+
+        >
+
+          <p class="mb-2 text-xs font-bold uppercase tracking-[0.25em] text-casino-red">Confirmar eliminación</p>
+
+          <h3 id="delete-product-title" class="font-display text-xl font-bold text-white">
+
+            ¿Eliminar «{{ product.name }}»?
+
+          </h3>
+
+          <p class="mt-3 text-sm text-gray-400">
+
+            Esta acción no se puede deshacer. El producto desaparecerá del listado y cualquier subasta activa o
+
+            programada asociada se cancelará automáticamente.
+
+          </p>
+
+
+
+          <div class="mt-6 flex flex-wrap justify-end gap-3">
+
+            <button
+
+              type="button"
+
+              class="rounded-xl border border-white/10 px-5 py-2.5 text-sm font-semibold text-gray-300 hover:bg-white/5"
+
+              [disabled]="deleting()"
+
+              (click)="cancelDelete()"
+
+            >
+
+              Cancelar
+
+            </button>
+
+            <button
+
+              type="button"
+
+              class="rounded-xl border border-red-500/40 bg-red-500/10 px-5 py-2.5 text-sm font-semibold text-red-200 hover:bg-red-500/20 disabled:opacity-50"
+
+              [disabled]="deleting()"
+
+              (click)="confirmDelete()"
+
+            >
+
+              {{ deleting() ? 'Eliminando...' : 'Sí, eliminar' }}
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    }
+
   `,
 
 })
@@ -472,6 +614,14 @@ export class AdminProductsPageComponent implements OnInit {
 
   readonly imagePreviews = signal<string[]>([]);
 
+  readonly existingImageUrls = signal<string[]>([]);
+
+  readonly editingProductId = signal<number | null>(null);
+
+  readonly productToDelete = signal<AdminProduct | null>(null);
+
+  readonly deleting = signal(false);
+
 
 
   readonly form = this.formBuilder.nonNullable.group({
@@ -479,8 +629,6 @@ export class AdminProductsPageComponent implements OnInit {
     name: ['', Validators.required],
 
     real_cost: [0, [Validators.required, Validators.min(0.01)]],
-
-    retail_value: [0],
 
     description: [''],
 
@@ -536,63 +684,187 @@ export class AdminProductsPageComponent implements OnInit {
 
     const raw = this.form.getRawValue();
 
-    this.adminService
+    const payload = {
 
-      .createProduct({
+      name: raw.name,
 
-        name: raw.name,
+      real_cost: raw.real_cost,
 
-        real_cost: raw.real_cost,
+      description: raw.description || undefined,
 
-        retail_value: raw.retail_value || undefined,
+      estimated_bits: raw.estimated_bits,
 
-        description: raw.description || undefined,
+      status: 'published' as const,
 
-        estimated_bits: raw.estimated_bits,
+      images: this.selectedImages().length > 0 ? this.selectedImages() : undefined,
 
-        status: 'published',
+    };
 
-        images: this.selectedImages(),
 
-      })
 
-      .subscribe({
+    const editingId = this.editingProductId();
 
-        next: () => {
+    const request$ = editingId
 
-          this.submitting.set(false);
+      ? this.adminService.updateProduct(editingId, payload)
 
-          this.successMessage.set('Producto guardado con estrategia de margen. Ahora prográmalo en Subastas.');
+      : this.adminService.createProduct(payload);
 
-          this.form.reset({ name: '', real_cost: 0, retail_value: 0, description: '', estimated_bits: 500 });
 
-          this.selectedImages.set([]);
 
-          this.imagePreviews.set([]);
+    request$.subscribe({
 
-          this.loadProducts();
+      next: () => {
 
-        },
+        this.submitting.set(false);
 
-        error: (err) => {
+        this.successMessage.set(
 
-          this.submitting.set(false);
+          editingId
 
-          this.errorMessage.set(err?.error?.message ?? 'Error al crear el producto.');
+            ? 'Producto actualizado correctamente.'
 
-        },
+            : 'Producto guardado con estrategia de margen. Ahora prográmalo en Subastas.',
 
-      });
+        );
+
+        this.cancelEdit();
+
+        this.loadProducts();
+
+      },
+
+      error: (err) => {
+
+        this.submitting.set(false);
+
+        this.errorMessage.set(err?.error?.message ?? 'Error al guardar el producto.');
+
+      },
+
+    });
 
   }
 
 
 
-  deleteProduct(product: AdminProduct): void {
+  editProduct(product: AdminProduct): void {
 
-    if (!confirm(`¿Eliminar "${product.name}"?`)) return;
+    this.editingProductId.set(product.id);
 
-    this.adminService.deleteProduct(product.id).subscribe({ next: () => this.loadProducts() });
+    this.existingImageUrls.set(product.image_urls);
+
+    this.selectedImages.set([]);
+
+    this.imagePreviews.set([]);
+
+    this.successMessage.set('');
+
+    this.errorMessage.set('');
+
+
+
+    this.form.patchValue({
+
+      name: product.name,
+
+      real_cost: product.real_cost,
+
+      description: product.description ?? '',
+
+      estimated_bits: product.metadata?.estimated_bits ?? 500,
+
+    });
+
+    this.updateMarginPreview();
+
+    document.getElementById('product-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+  }
+
+
+
+  cancelEdit(): void {
+
+    this.editingProductId.set(null);
+
+    this.existingImageUrls.set([]);
+
+    this.selectedImages.set([]);
+
+    this.imagePreviews.set([]);
+
+    this.form.reset({ name: '', real_cost: 0, description: '', estimated_bits: 500 });
+
+    this.marginPreview.set(null);
+
+  }
+
+
+
+  requestDelete(product: AdminProduct): void {
+
+    this.productToDelete.set(product);
+
+  }
+
+
+
+  cancelDelete(): void {
+
+    if (this.deleting()) return;
+
+    this.productToDelete.set(null);
+
+  }
+
+
+
+  confirmDelete(): void {
+
+    const product = this.productToDelete();
+
+    if (!product || this.deleting()) return;
+
+
+
+    this.deleting.set(true);
+
+    this.errorMessage.set('');
+
+
+
+    this.adminService.deleteProduct(product.id).subscribe({
+
+      next: () => {
+
+        this.deleting.set(false);
+
+        this.productToDelete.set(null);
+
+        if (this.editingProductId() === product.id) {
+
+          this.cancelEdit();
+
+        }
+
+        this.successMessage.set(`"${product.name}" eliminado correctamente.`);
+
+        this.loadProducts();
+
+      },
+
+      error: (err) => {
+
+        this.deleting.set(false);
+
+        this.productToDelete.set(null);
+
+        this.errorMessage.set(err?.error?.message ?? 'No se pudo eliminar el producto.');
+
+      },
+
+    });
 
   }
 
@@ -632,8 +904,6 @@ export class AdminProductsPageComponent implements OnInit {
 
         bits_consumed: this.form.controls.estimated_bits.value,
 
-        retail_value: this.form.controls.retail_value.value || undefined,
-
         min_margin_percent: 17,
 
         max_margin_percent: 25,
@@ -645,16 +915,6 @@ export class AdminProductsPageComponent implements OnInit {
         next: (preview) => {
 
           this.marginPreview.set(preview);
-
-          if (!this.form.controls.retail_value.value) {
-
-            this.form.controls.retail_value.setValue(preview.strategy.recommended_retail_value, {
-
-              emitEvent: false,
-
-            });
-
-          }
 
         },
 
