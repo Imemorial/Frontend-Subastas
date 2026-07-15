@@ -734,6 +734,8 @@ export class AdminAuctionsPageComponent implements OnInit, OnDestroy {
 
   private refreshInterval?: ReturnType<typeof setInterval>;
 
+  private weeklyRefreshInterval?: ReturnType<typeof setInterval>;
+
 
 
   readonly products = signal<AdminProduct[]>([]);
@@ -835,11 +837,27 @@ export class AdminAuctionsPageComponent implements OnInit, OnDestroy {
 
     this.refreshInterval = setInterval(() => {
 
+      if (document.visibilityState === 'hidden') {
+
+        return;
+
+      }
+
       this.loadAuctions();
+
+    }, 30000);
+
+    this.weeklyRefreshInterval = setInterval(() => {
+
+      if (document.visibilityState === 'hidden') {
+
+        return;
+
+      }
 
       this.loadWeeklyPlan();
 
-    }, 15000);
+    }, 120000);
 
   }
 
@@ -850,6 +868,12 @@ export class AdminAuctionsPageComponent implements OnInit, OnDestroy {
     if (this.refreshInterval) {
 
       clearInterval(this.refreshInterval);
+
+    }
+
+    if (this.weeklyRefreshInterval) {
+
+      clearInterval(this.weeklyRefreshInterval);
 
     }
 

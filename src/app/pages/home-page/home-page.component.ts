@@ -1,6 +1,6 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 
 import { Router, RouterLink } from '@angular/router';
 
@@ -24,6 +24,8 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
   standalone: true,
 
+  changeDetection: ChangeDetectionStrategy.OnPush,
+
   imports: [
 
     AuctionCardComponent,
@@ -40,35 +42,35 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
   template: `
 
-    <main>
+    <main class="page-content w-full min-w-0">
 
       <!-- HERO -->
 
-      <section class="relative overflow-hidden border-b border-gold/10">
+      <section class="relative w-full min-w-0 overflow-hidden border-b border-gold/10">
 
         <div class="section-glow"></div>
 
         <div
 
-          class="pointer-events-none absolute -right-32 top-0 h-96 w-96 rounded-full bg-gold/8 blur-3xl"
+          class="pointer-events-none absolute -right-16 top-0 h-64 w-64 rounded-full bg-gold/8 blur-3xl sm:-right-32 sm:h-96 sm:w-96"
 
         ></div>
 
         <div
 
-          class="pointer-events-none absolute -left-20 bottom-0 h-72 w-72 rounded-full bg-neon-magenta/8 blur-3xl"
+          class="pointer-events-none absolute -left-10 bottom-0 h-48 w-48 rounded-full bg-neon-magenta/8 blur-3xl sm:-left-20 sm:h-72 sm:w-72"
 
         ></div>
 
 
 
-        <div class="relative mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-2 lg:items-center lg:py-20">
+        <div class="relative mx-auto grid w-full min-w-0 max-w-7xl gap-8 px-4 py-8 sm:gap-10 sm:px-6 sm:py-12 lg:grid-cols-2 lg:items-center lg:py-20">
 
-          <div>
+          <div class="text-center lg:text-left">
 
             <div
 
-              class="mb-5 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-4 py-1.5"
+              class="mb-5 inline-flex items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1.5 sm:px-4"
 
             >
 
@@ -84,9 +86,17 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
               </span>
 
-              <span class="text-xs font-bold uppercase tracking-[0.2em] text-gold">
+              <span class="text-[10px] font-bold uppercase tracking-[0.15em] text-gold sm:text-xs sm:tracking-[0.2em]">
 
-                {{ activeCount() }} subastas en juego ahora
+                @if (initialLoadComplete()) {
+
+                  {{ activeCount() }} subastas en juego ahora
+
+                } @else {
+
+                  Cargando subastas...
+
+                }
 
               </span>
 
@@ -94,7 +104,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
 
 
-            <h1 class="mb-5 font-display text-4xl font-black leading-[1.1] text-white sm:text-5xl lg:text-6xl">
+            <h1 class="mx-auto mb-5 max-w-xl font-display text-3xl font-black leading-[1.1] text-white sm:text-5xl lg:mx-0 lg:max-w-none lg:text-6xl">
 
               Tecnología premium.
 
@@ -104,7 +114,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
 
 
-            <p class="mb-6 max-w-xl text-base text-gray-400 sm:text-lg">
+            <p class="mx-auto mb-6 max-w-xl text-sm text-gray-400 sm:text-base lg:mx-0 lg:text-lg">
 
               Compite en tiempo real, gana productos de cientos de euros y siente la adrenalina de una
 
@@ -114,11 +124,11 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
 
 
-            <div class="mb-8 flex flex-wrap gap-3">
+            <div class="mb-8 flex flex-wrap justify-center gap-3 lg:justify-start">
 
               @if (isAuthenticated()) {
 
-                <a href="#activas" class="btn-neon-primary animate-cta-pulse px-6 py-3.5 text-sm">
+                <a href="#activas" class="btn-neon-primary animate-cta-pulse w-full px-6 py-3.5 text-sm sm:w-auto">
 
                   Ir a las subastas
 
@@ -126,7 +136,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
               } @else {
 
-                <a routerLink="/register" class="btn-neon-primary animate-cta-pulse px-6 py-3.5 text-sm">
+                <a routerLink="/register" class="btn-neon-primary animate-cta-pulse w-full px-6 py-3.5 text-sm sm:w-auto">
 
                   Empezar a jugar — es gratis
 
@@ -136,7 +146,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
                   routerLink="/login"
 
-                  class="rounded-xl border border-white/10 px-6 py-3.5 text-sm font-semibold text-gray-200 transition hover:border-gold/30 hover:text-gold-light"
+                  class="w-full rounded-xl border border-white/10 px-6 py-3.5 text-sm font-semibold text-gray-200 transition hover:border-gold/30 hover:text-gold-light sm:w-auto"
 
                 >
 
@@ -150,29 +160,29 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
 
 
-            <div class="grid grid-cols-3 gap-3 sm:max-w-lg">
+            <div class="mx-auto grid w-full grid-cols-3 gap-2 sm:max-w-lg sm:gap-3 lg:mx-0">
 
               <div class="stat-pill">
 
-                <p class="font-display text-2xl font-black text-gold">{{ activeCount() }}</p>
+                <p class="stat-pill-value text-gold">{{ activeCount() }}</p>
 
-                <p class="text-[9px] uppercase tracking-wider text-gray-500">En juego</p>
+                <p class="stat-pill-label">En juego</p>
 
               </div>
 
               <div class="stat-pill">
 
-                <p class="font-display text-2xl font-black text-neon-emerald">{{ totalSavings() | currency: 'EUR' : 'symbol' : '1.0-0' : 'es' }}</p>
+                <p class="stat-pill-value break-words text-neon-emerald text-sm sm:text-2xl">{{ totalSavings() | currency: 'EUR' : 'symbol' : '1.0-0' : 'es' }}</p>
 
-                <p class="text-[9px] uppercase tracking-wider text-gray-500">Ahorrado hoy</p>
+                <p class="stat-pill-label">Ahorrado hoy</p>
 
               </div>
 
               <div class="stat-pill">
 
-                <p class="font-display text-2xl font-black text-neon-cyan">{{ recentWins().length }}</p>
+                <p class="stat-pill-value text-neon-cyan">{{ recentWins().length }}</p>
 
-                <p class="text-[9px] uppercase tracking-wider text-gray-500">Ganadores</p>
+                <p class="stat-pill-label">Ganadores</p>
 
               </div>
 
@@ -184,7 +194,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
           @if (featured(); as spotlight) {
 
-            <div class="neon-border-gradient">
+            <div class="neon-border-gradient mx-auto w-full lg:mx-0">
 
               <div class="inner overflow-hidden">
 
@@ -234,13 +244,13 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
 
 
-                <div class="space-y-4 p-6">
+                <div class="space-y-4 p-4 sm:p-6">
 
                   <div>
 
                     <p class="mb-1 text-[9px] uppercase tracking-[0.3em] text-gold/70">Oportunidad del momento</p>
 
-                    <h2 class="font-display text-2xl font-black text-white">{{ spotlight.product.name }}</h2>
+                    <h2 class="font-display text-xl font-black text-white sm:text-2xl">{{ spotlight.product.name }}</h2>
 
                     <p class="mt-1 text-sm text-gray-500">
 
@@ -262,7 +272,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
                     <p class="text-[9px] uppercase tracking-[0.3em] text-gold/80">Subasta en juego</p>
 
-                    <p class="mt-2 font-display text-4xl font-black text-white">
+                    <p class="mt-2 font-display text-3xl font-black text-white sm:text-4xl">
 
                       {{ spotlight.totalBids }}
 
@@ -284,7 +294,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
                       <p class="text-[9px] uppercase tracking-wider text-gray-500">Precio ahora</p>
 
-                      <p class="font-display text-4xl font-black text-neon-emerald">
+                      <p class="font-display text-3xl font-black text-neon-emerald sm:text-4xl">
 
                         {{ spotlight.currentPrice | currency: 'EUR' : 'symbol' : '1.2-2' : 'es' }}
 
@@ -322,7 +332,29 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
             </div>
 
-          } @else if (!loading()) {
+          } @else if (loading() && !initialLoadComplete()) {
+
+            <div
+
+              class="flex min-h-[320px] animate-pulse items-center justify-center rounded-2xl border border-gold/10 bg-white/5 p-8"
+
+            >
+
+              <div class="w-full max-w-sm space-y-4">
+
+                <div class="mx-auto h-40 rounded-xl bg-white/10"></div>
+
+                <div class="h-4 rounded bg-white/10"></div>
+
+                <div class="h-4 w-2/3 rounded bg-white/10"></div>
+
+                <div class="h-12 rounded-xl bg-gold/20"></div>
+
+              </div>
+
+            </div>
+
+          } @else if (!featured() && initialLoadComplete()) {
 
             <div
 
@@ -356,9 +388,9 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
       <!-- ÚLTIMAS VICTORIAS -->
 
-      <section class="border-b border-white/[0.04] bg-space-velvet/50">
+      <section class="w-full min-w-0 border-b border-white/[0.04] bg-space-velvet/50">
 
-        <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+        <div class="mx-auto w-full min-w-0 max-w-7xl px-4 py-14 sm:px-6">
 
           <div class="mb-8 text-center">
 
@@ -382,7 +414,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
           @if (recentWins().length > 0) {
 
-            <div class="flex gap-4 overflow-x-auto pb-2 scrollbar-thin lg:grid lg:grid-cols-4 lg:overflow-visible">
+            <div class="grid w-full min-w-0 grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
 
               @for (win of recentWins(); track win.id) {
 
@@ -414,13 +446,13 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
       <!-- SUBASTAS ACTIVAS -->
 
-      <section id="activas" class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+      <section id="activas" class="mx-auto w-full min-w-0 max-w-7xl px-4 py-14 sm:px-6">
 
-        <div class="mb-8 flex flex-wrap items-center justify-between gap-4">
+        <div class="mb-8 text-center sm:text-left">
 
-          <div>
+          <div class="mx-auto sm:mx-0">
 
-            <div class="mb-2 flex items-center gap-2">
+            <div class="mb-2 flex items-center justify-center gap-2 sm:justify-start">
 
               <span class="relative flex h-2.5 w-2.5">
 
@@ -450,7 +482,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
         @if (loading()) {
 
-          <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
 
             @for (i of [1, 2, 3]; track i) {
 
@@ -462,7 +494,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
         } @else if (activeAuctions().length > 0) {
 
-          <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-2 lg:grid-cols-3">
 
             @for (auction of activeAuctions(); track auction.id) {
 
@@ -514,11 +546,11 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
       <section class="border-t border-white/[0.04] bg-space-velvet/30">
 
-        <div class="mx-auto max-w-7xl px-4 py-14 sm:px-6">
+        <div class="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6">
 
-          <div class="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div class="mb-8 text-center sm:text-left">
 
-            <div>
+            <div class="mx-auto sm:mx-0">
 
               <p class="mb-2 text-xs uppercase tracking-[0.35em] text-neon-cyan">Próximamente</p>
 
@@ -528,7 +560,7 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
               </h2>
 
-              <p class="mt-2 max-w-2xl text-sm text-gray-400">
+              <p class="mx-auto mt-2 max-w-2xl text-sm text-gray-400 sm:mx-0">
 
                 Prepárate. Estos productos entran en juego pronto — los primeros en pujar tienen ventaja.
 
@@ -542,11 +574,11 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
           @if (upcomingAuctions().length > 0) {
 
-            <div class="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            <div class="grid w-full min-w-0 grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
 
               @for (auction of upcomingAuctions(); track auction.id) {
 
-                <article class="glass-card overflow-hidden transition hover:-translate-y-1 hover:border-gold/20">
+                <article class="glass-card w-full min-w-0 overflow-hidden transition hover:-translate-y-1 hover:border-gold/20">
 
                   <div class="relative">
 
@@ -690,6 +722,14 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
   private refreshInterval?: ReturnType<typeof setInterval>;
 
+  private staticRefreshInterval?: ReturnType<typeof setInterval>;
+
+  private visibilityHandler = (): void => {
+    if (document.visibilityState === 'visible') {
+      this.refreshActiveAuctions();
+    }
+  };
+
 
 
   readonly activeAuctions = signal<AuctionSummary[]>([]);
@@ -699,6 +739,8 @@ export class HomePageComponent implements OnInit, OnDestroy {
   readonly upcomingAuctions = signal<UpcomingAuction[]>([]);
 
   readonly loading = signal(true);
+
+  readonly initialLoadComplete = signal(false);
 
   readonly loadError = signal('');
 
@@ -730,7 +772,11 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
     this.loadHomeData(true);
 
-    this.refreshInterval = setInterval(() => this.loadHomeData(false), 15000);
+    this.refreshInterval = setInterval(() => this.refreshActiveAuctions(), 12000);
+
+    this.staticRefreshInterval = setInterval(() => this.refreshStaticSections(), 90000);
+
+    document.addEventListener('visibilitychange', this.visibilityHandler);
 
   }
 
@@ -743,6 +789,14 @@ export class HomePageComponent implements OnInit, OnDestroy {
       clearInterval(this.refreshInterval);
 
     }
+
+    if (this.staticRefreshInterval) {
+
+      clearInterval(this.staticRefreshInterval);
+
+    }
+
+    document.removeEventListener('visibilitychange', this.visibilityHandler);
 
   }
 
@@ -778,19 +832,57 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
 
 
-    let pending = 3;
+    this.auctionService.getHomeData().subscribe({
 
-    const done = (): void => {
+      next: (data) => {
 
-      pending -= 1;
+        this.activeAuctions.set(data.active);
 
-      if (pending === 0 && showLoading) {
+        this.recentWins.set(data.winners);
 
-        this.loading.set(false);
+        this.upcomingAuctions.set(data.upcoming);
 
-      }
+        this.initialLoadComplete.set(true);
 
-    };
+        this.loadError.set('');
+
+        if (showLoading) {
+
+          this.loading.set(false);
+
+        }
+
+      },
+
+      error: () => {
+
+        if (!this.initialLoadComplete()) {
+
+          this.loadError.set('No se pudieron cargar las subastas activas.');
+
+        }
+
+        if (showLoading) {
+
+          this.loading.set(false);
+
+        }
+
+      },
+
+    });
+
+  }
+
+
+
+  private refreshActiveAuctions(): void {
+
+    if (document.visibilityState === 'hidden') {
+
+      return;
+
+    }
 
 
 
@@ -798,39 +890,31 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
       next: (auctions) => {
 
-        this.activeAuctions.set(auctions);
-
-        done();
-
-      },
-
-      error: () => {
-
-        this.loadError.set('No se pudieron cargar las subastas activas.');
-
-        done();
+        this.activeAuctions.update((current) => this.auctionService.mergeActiveAuctions(current, auctions));
 
       },
 
     });
 
+  }
 
 
-    this.auctionService.getHomeWinners().subscribe({
 
-      next: (wins) => {
+  private refreshStaticSections(): void {
 
-        this.recentWins.set(wins);
+    if (document.visibilityState === 'hidden') {
 
-        done();
+      return;
 
-      },
+    }
 
-      error: () => {
 
-        done();
 
-      },
+    this.auctionService.invalidateHomeWinnersCache();
+
+    this.auctionService.getHomeWinners(true).subscribe({
+
+      next: (wins) => this.recentWins.set(wins),
 
     });
 
@@ -838,19 +922,7 @@ export class HomePageComponent implements OnInit, OnDestroy {
 
     this.auctionService.getUpcomingAuctions().subscribe({
 
-      next: (auctions) => {
-
-        this.upcomingAuctions.set(auctions);
-
-        done();
-
-      },
-
-      error: () => {
-
-        done();
-
-      },
+      next: (auctions) => this.upcomingAuctions.set(auctions),
 
     });
 

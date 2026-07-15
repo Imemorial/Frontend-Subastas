@@ -9,7 +9,7 @@ import { RecentWin } from '../../../core/auction/auction.service';
   imports: [CurrencyPipe, DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <article class="jackpot-card group flex min-w-[280px] flex-col">
+    <article class="jackpot-card group flex w-full min-w-0 max-w-full flex-col overflow-hidden">
       <div class="relative aspect-[4/3] overflow-hidden">
         <img
           [src]="win().productImageUrl"

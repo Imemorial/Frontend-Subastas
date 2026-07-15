@@ -4,20 +4,7 @@ import { adminGuard } from './core/admin/admin.guard';
 import { ClientProfileGuard } from './core/profile/client-profile.guard';
 import { authGuard } from './core/auth/auth.guard';
 import { guestGuard } from './core/auth/guest.guard';
-import { AdminAuctionsPageComponent } from './pages/admin/admin-auctions-page.component';
-import { AdminDashboardPageComponent } from './pages/admin/admin-dashboard-page.component';
-import { AdminLayoutComponent } from './pages/admin/admin-layout.component';
-import { AdminWinnersPageComponent } from './pages/admin/admin-winners-page.component';
-import { AdminProductsPageComponent } from './pages/admin/admin-products-page.component';
-import { ForgotPasswordPageComponent } from './pages/forgot-password-page/forgot-password-page.component';
 import { HomePageComponent } from './pages/home-page/home-page.component';
-import { LoginPageComponent } from './pages/login-page/login-page.component';
-import { ProfileBitsPageComponent } from './pages/profile/profile-bits-page.component';
-import { ProfileLayoutComponent } from './pages/profile/profile-layout.component';
-import { ProfileRedirectComponent } from './pages/profile/profile-redirect.component';
-import { ProfilePersonalPageComponent } from './pages/profile/profile-personal-page.component';
-import { RegisterPageComponent } from './pages/register-page/register-page.component';
-import { ResetPasswordPageComponent } from './pages/reset-password-page/reset-password-page.component';
 
 export const routes: Routes = [
   {
@@ -26,43 +13,92 @@ export const routes: Routes = [
   },
   {
     path: 'login',
-    component: LoginPageComponent,
+    loadComponent: () =>
+      import('./pages/login-page/login-page.component').then((m) => m.LoginPageComponent),
     canActivate: [guestGuard],
   },
   {
     path: 'register',
-    component: RegisterPageComponent,
+    loadComponent: () =>
+      import('./pages/register-page/register-page.component').then((m) => m.RegisterPageComponent),
     canActivate: [guestGuard],
   },
   {
     path: 'olvide-contrasena',
-    component: ForgotPasswordPageComponent,
+    loadComponent: () =>
+      import('./pages/forgot-password-page/forgot-password-page.component').then(
+        (m) => m.ForgotPasswordPageComponent,
+      ),
     canActivate: [guestGuard],
   },
   {
     path: 'restablecer-contrasena',
-    component: ResetPasswordPageComponent,
+    loadComponent: () =>
+      import('./pages/reset-password-page/reset-password-page.component').then(
+        (m) => m.ResetPasswordPageComponent,
+      ),
     canActivate: [guestGuard],
   },
   {
     path: 'perfil',
-    component: ProfileLayoutComponent,
+    loadComponent: () =>
+      import('./pages/profile/profile-layout.component').then((m) => m.ProfileLayoutComponent),
     canActivate: [authGuard],
     children: [
-      { path: '', component: ProfileRedirectComponent },
-      { path: 'datos', component: ProfilePersonalPageComponent, canActivate: [ClientProfileGuard] },
-      { path: 'bits', component: ProfileBitsPageComponent },
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/profile/profile-redirect.component').then((m) => m.ProfileRedirectComponent),
+      },
+      {
+        path: 'datos',
+        loadComponent: () =>
+          import('./pages/profile/profile-personal-page.component').then(
+            (m) => m.ProfilePersonalPageComponent,
+          ),
+        canActivate: [ClientProfileGuard],
+      },
+      {
+        path: 'bits',
+        loadComponent: () =>
+          import('./pages/profile/profile-bits-page.component').then((m) => m.ProfileBitsPageComponent),
+      },
     ],
   },
   {
     path: 'admin',
-    component: AdminLayoutComponent,
+    loadComponent: () =>
+      import('./pages/admin/admin-layout.component').then((m) => m.AdminLayoutComponent),
     canActivate: [authGuard, adminGuard],
     children: [
-      { path: '', component: AdminDashboardPageComponent },
-      { path: 'products', component: AdminProductsPageComponent },
-      { path: 'auctions', component: AdminAuctionsPageComponent },
-      { path: 'winners', component: AdminWinnersPageComponent },
+      {
+        path: '',
+        loadComponent: () =>
+          import('./pages/admin/admin-dashboard-page.component').then(
+            (m) => m.AdminDashboardPageComponent,
+          ),
+      },
+      {
+        path: 'products',
+        loadComponent: () =>
+          import('./pages/admin/admin-products-page.component').then(
+            (m) => m.AdminProductsPageComponent,
+          ),
+      },
+      {
+        path: 'auctions',
+        loadComponent: () =>
+          import('./pages/admin/admin-auctions-page.component').then(
+            (m) => m.AdminAuctionsPageComponent,
+          ),
+      },
+      {
+        path: 'winners',
+        loadComponent: () =>
+          import('./pages/admin/admin-winners-page.component').then(
+            (m) => m.AdminWinnersPageComponent,
+          ),
+      },
     ],
   },
   {

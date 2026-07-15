@@ -76,7 +76,7 @@ export class CountdownTimerComponent {
       this.remainingSeconds.set(initial);
       this.startLocalTick();
       this.subscribeToWebSocket(id);
-    });
+    }, { allowSignalWrites: true });
 
     effect(() => {
       if (this.isUrgent()) {

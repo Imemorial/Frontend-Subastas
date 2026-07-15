@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of, switchMap } from 'rxjs';
+import { Observable, catchError, map, of, shareReplay, switchMap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { resolveStorageUrl } from '../http/asset-url';
@@ -16,6 +16,19 @@ interface FeaturedWinnerApi {
   final_price: number;
   retail_value: number;
   discount_percent: number;
+}
+
+interface HomeApiResponse {
+  active: { data: ApiAuction[] } | ApiAuction[];
+  upcoming: { data: ApiAuction[] } | ApiAuction[];
+  winners: { data: FeaturedWinnerApi[] | ApiAuction[] } | (FeaturedWinnerApi[] | ApiAuction[]);
+  winners_type: 'showcase' | 'recent';
+}
+
+export interface HomeData {
+  active: AuctionSummary[];
+  upcoming: UpcomingAuction[];
+  winners: RecentWin[];
 }
 
 export interface RecentWin {
@@ -62,6 +75,21 @@ const PRODUCT_PLACEHOLDER_IMAGES: Record<string, string> = {
 export class AuctionService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = `${environment.apiUrl}/v1/auctions`;
+  private homeWinnersCache$?: Observable<RecentWin[]>;
+
+  getHomeData(): Observable<HomeData> {
+    return this.http.get<HomeApiResponse>(`${environment.apiUrl}/v1/home`).pipe(
+      map((response) => ({
+        active: this.unwrapList(response.active)
+          .filter((auction) => auction.product != null)
+          .map((auction) => this.toAuctionSummary(auction)),
+        upcoming: this.unwrapList(response.upcoming)
+          .filter((auction) => auction.product != null)
+          .map((auction) => this.toUpcomingAuction(auction)),
+        winners: this.mapWinners(this.unwrapList(response.winners), response.winners_type),
+      })),
+    );
+  }
 
   getActiveAuctions(): Observable<AuctionSummary[]> {
     return this.http.get<{ data: ApiAuction[] }>(this.baseUrl).pipe(
@@ -73,16 +101,39 @@ export class AuctionService {
     );
   }
 
+  /** Fusiona subastas activas conservando referencias si no cambiaron (menos re-renders). */
+  mergeActiveAuctions(current: AuctionSummary[], incoming: AuctionSummary[]): AuctionSummary[] {
+    const incomingById = new Map(incoming.map((auction) => [auction.id, auction]));
+    const merged: AuctionSummary[] = [];
+    const seen = new Set<number>();
+
+    for (const existing of current) {
+      const next = incomingById.get(existing.id);
+      if (!next) {
+        continue;
+      }
+
+      seen.add(existing.id);
+      merged.push(this.sameAuctionSummary(existing, next) ? existing : next);
+    }
+
+    for (const next of incoming) {
+      if (!seen.has(next.id)) {
+        merged.push(next);
+      }
+    }
+
+    return merged;
+  }
+
   getRecentWins(): Observable<RecentWin[]> {
-    return this.http
-      .get<{ data: ApiAuction[] }>(`${this.baseUrl}/recent-wins`)
-      .pipe(
-        map((response) =>
-          response.data
-            .filter((auction) => auction.product != null)
-            .map((auction) => this.toRecentWin(auction)),
-        ),
-      );
+    return this.http.get<{ data: ApiAuction[] }>(`${this.baseUrl}/recent-wins`).pipe(
+      map((response) =>
+        response.data
+          .filter((auction) => auction.product != null)
+          .map((auction) => this.toRecentWin(auction)),
+      ),
+    );
   }
 
   getFeaturedWinners(): Observable<RecentWin[]> {
@@ -91,30 +142,72 @@ export class AuctionService {
       .pipe(map((response) => response.data.map((item) => this.toFeaturedWin(item))));
   }
 
-  getHomeWinners(): Observable<RecentWin[]> {
-    return this.getFeaturedWinners().pipe(
-      switchMap((featured) => (featured.length > 0 ? of(featured) : this.getRecentWins())),
-      catchError(() => this.getRecentWins()),
-    );
+  getHomeWinners(refresh = false): Observable<RecentWin[]> {
+    if (refresh || !this.homeWinnersCache$) {
+      this.homeWinnersCache$ = this.getFeaturedWinners().pipe(
+        switchMap((featured) => (featured.length > 0 ? of(featured) : this.getRecentWins())),
+        catchError(() => this.getRecentWins()),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
+    }
+
+    return this.homeWinnersCache$;
+  }
+
+  invalidateHomeWinnersCache(): void {
+    this.homeWinnersCache$ = undefined;
   }
 
   getUpcomingAuctions(): Observable<UpcomingAuction[]> {
-    return this.http
-      .get<{ data: ApiAuction[] }>(`${this.baseUrl}/upcoming`)
-      .pipe(
-        map((response) =>
-          response.data
-            .filter((auction) => auction.product != null)
-            .map((auction) => ({
-              id: auction.id,
-              productName: auction.product.name,
-              productImageUrl: this.resolveProductImage(auction.product),
-              retailValue: this.shopValue(auction.product),
-              scheduledAt: auction.scheduled_at ? new Date(auction.scheduled_at) : null,
-              currentPrice: auction.current_price,
-            })),
-        ),
-      );
+    return this.http.get<{ data: ApiAuction[] }>(`${this.baseUrl}/upcoming`).pipe(
+      map((response) =>
+        response.data
+          .filter((auction) => auction.product != null)
+          .map((auction) => this.toUpcomingAuction(auction)),
+      ),
+    );
+  }
+
+  private unwrapList<T>(payload: { data: T[] } | T[] | null | undefined): T[] {
+    if (!payload) {
+      return [];
+    }
+
+    return Array.isArray(payload) ? payload : (payload.data ?? []);
+  }
+
+  private mapWinners(
+    winners: FeaturedWinnerApi[] | ApiAuction[],
+    type: 'showcase' | 'recent',
+  ): RecentWin[] {
+    if (type === 'showcase') {
+      return (winners as FeaturedWinnerApi[]).map((item) => this.toFeaturedWin(item));
+    }
+
+    return (winners as ApiAuction[])
+      .filter((auction) => auction.product != null)
+      .map((auction) => this.toRecentWin(auction));
+  }
+
+  private toUpcomingAuction(auction: ApiAuction): UpcomingAuction {
+    return {
+      id: auction.id,
+      productName: auction.product.name,
+      productImageUrl: this.resolveProductImage(auction.product),
+      retailValue: this.shopValue(auction.product),
+      scheduledAt: auction.scheduled_at ? new Date(auction.scheduled_at) : null,
+      currentPrice: auction.current_price,
+    };
+  }
+
+  private sameAuctionSummary(a: AuctionSummary, b: AuctionSummary): boolean {
+    return (
+      a.currentPrice === b.currentPrice &&
+      a.totalBids === b.totalBids &&
+      a.remainingSeconds === b.remainingSeconds &&
+      a.lastBidder?.id === b.lastBidder?.id &&
+      a.lastBidder?.name === b.lastBidder?.name
+    );
   }
 
   private toAuctionSummary(auction: ApiAuction): AuctionSummary {

@@ -77,7 +77,7 @@ import { AuthService } from '../../core/auth/auth.service';
         }
 
         <p class="mt-6 text-center text-sm text-gray-400">
-          <a routerLink="/login" class="font-bold text-gold hover:text-gold-light">← Volver al login</a>
+          <a routerLink="/login" class="font-bold text-gold hover:text-gold-light">← Volver a iniciar sesión</a>
         </p>
       </section>
     </main>

@@ -22,7 +22,7 @@ const BIT_PRESETS = [1, 5, 10, 20, 50] as const;
   standalone: true,
   imports: [CurrencyPipe],
   template: `
-    <article class="glass-card group flex h-full flex-col transition-all duration-300 hover:-translate-y-1.5">
+    <article class="glass-card group flex h-full w-full min-w-0 flex-col transition-all duration-300 hover:-translate-y-1.5">
       <div class="relative aspect-[4/3] overflow-hidden rounded-t-2xl">
         <img
           [src]="imageUrl()"
@@ -116,7 +116,7 @@ const BIT_PRESETS = [1, 5, 10, 20, 50] as const;
         @if (isAuthenticated()) {
           <div class="space-y-2">
             <p class="text-[9px] uppercase tracking-wider text-gray-500">Bits a pujar</p>
-            <div class="flex flex-wrap gap-1.5">
+            <div class="flex flex-wrap justify-center gap-1.5 sm:justify-start">
               @for (preset of bitPresets; track preset) {
                 <button
                   type="button"
@@ -177,6 +177,8 @@ export class AuctionCardComponent {
   private readonly ws = inject(WebsocketService);
 
   readonly auction = input.required<AuctionSummary>();
+
+  private readonly auctionId = computed(() => this.auction().id);
   readonly bidPlaced = output<number>();
 
   readonly bitPresets = BIT_PRESETS;
@@ -232,19 +234,30 @@ export class AuctionCardComponent {
   constructor() {
     this.ws.connect();
 
-    effect((onCleanup) => {
+    effect(() => {
       const a = this.auction();
-      this.currentPrice.set(a.currentPrice);
-      this.totalBids.set(a.totalBids);
-      this.lastBidder.set(a.lastBidder);
+      if (this.currentPrice() !== a.currentPrice) {
+        this.currentPrice.set(a.currentPrice);
+      }
+      if (this.totalBids() !== a.totalBids) {
+        this.totalBids.set(a.totalBids);
+      }
+      const bidder = a.lastBidder;
+      const current = this.lastBidder();
+      if (bidder?.id !== current?.id || bidder?.name !== current?.name) {
+        this.lastBidder.set(bidder);
+      }
 
       const balance = this.authService.user()?.bit_balance ?? 0;
       if (this.selectedBits() > balance && balance > 0) {
         const affordable = [...BIT_PRESETS].reverse().find((p) => p <= balance) ?? 1;
         this.selectedBits.set(affordable);
       }
+    }, { allowSignalWrites: true });
 
-      const bidSub = this.ws.onBidPlaced(a.id).subscribe((bid) => {
+    effect((onCleanup) => {
+      const auctionId = this.auctionId();
+      const bidSub = this.ws.onBidPlaced(auctionId).subscribe((bid) => {
         this.currentPrice.set(bid.amount);
         this.totalBids.update((n) => n + 1);
         this.lastBidder.set({

@@ -17,16 +17,28 @@
 
   html {
     @apply scroll-smooth antialiased;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   body {
     @apply min-h-screen bg-space-dark font-body text-gray-100;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
     background-image:
       radial-gradient(ellipse 90% 60% at 50% -15%, rgba(245, 158, 11, 0.1), transparent),
       radial-gradient(ellipse 50% 40% at 100% 0%, rgba(217, 70, 239, 0.06), transparent),
       radial-gradient(ellipse 40% 30% at 0% 100%, rgba(16, 185, 129, 0.05), transparent),
       radial-gradient(ellipse 30% 20% at 80% 90%, rgba(220, 38, 38, 0.04), transparent);
-    background-attachment: fixed;
+    background-attachment: scroll;
+  }
+
+  @media (min-width: 1024px) {
+    body {
+      background-attachment: fixed;
+    }
   }
 
   h1,
@@ -36,6 +48,19 @@
   h5,
   h6 {
     @apply font-display font-semibold tracking-tight;
+  }
+
+  app-root {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
   }
 }
 
@@ -102,9 +127,21 @@
   }
 
   .chip-balance {
-    @apply relative inline-flex items-center gap-2.5 overflow-hidden rounded-full
+    @apply relative inline-flex shrink-0 items-center gap-1 overflow-hidden rounded-full
       border border-gold/40 bg-gradient-to-b from-gold/20 to-gold/5
-      px-4 py-2 shadow-gold-inner backdrop-blur-md;
+      px-1.5 py-0.5 shadow-gold-inner backdrop-blur-md sm:gap-2 sm:px-3 sm:py-1.5;
+  }
+
+  .chip-balance-icon {
+    @apply relative z-10 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-gold-shine text-[9px] font-black text-space-dark shadow-gold sm:h-6 sm:w-6 sm:text-[10px];
+  }
+
+  .chip-balance-value {
+    @apply relative z-10 font-display text-[11px] font-black leading-none text-gold-light sm:text-xs;
+  }
+
+  .chip-balance-unit {
+    @apply hidden text-[9px] font-semibold text-gold/70 min-[420px]:inline;
   }
 
   .chip-balance::before {
@@ -163,11 +200,24 @@
   }
 
   .live-ticker {
-    @apply overflow-hidden border-b border-gold/10 bg-space-velvet/90 backdrop-blur-md;
+    @apply relative isolate w-full shrink-0 overflow-hidden border-b border-gold/10 bg-space-velvet/90 backdrop-blur-md;
+    max-width: 100%;
+    height: 2.25rem;
+    contain: layout paint style;
   }
 
   .live-ticker-track {
-    @apply flex w-max animate-marquee items-center gap-8 whitespace-nowrap py-2;
+    @apply absolute left-0 top-0 flex h-full w-max animate-marquee items-center gap-8 whitespace-nowrap;
+    will-change: transform;
+  }
+
+  .page-shell {
+    @apply w-full min-w-0 overflow-x-clip;
+    max-width: 100dvw;
+  }
+
+  .page-content {
+    @apply w-full min-w-0;
   }
 
   .jackpot-card {
@@ -185,8 +235,16 @@
   }
 
   .stat-pill {
-    @apply rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 text-center
+    @apply rounded-2xl border border-white/[0.06] bg-white/[0.03] px-2 py-2.5 text-center sm:px-4 sm:py-3
       transition hover:border-gold/20 hover:bg-gold/5;
+  }
+
+  .stat-pill-value {
+    @apply font-display text-base font-black sm:text-2xl;
+  }
+
+  .stat-pill-label {
+    @apply text-[8px] uppercase leading-tight tracking-wider text-gray-500 sm:text-[9px];
   }
 
   .card-urgent {

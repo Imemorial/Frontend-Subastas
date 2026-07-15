@@ -1,5 +1,5 @@
 import { CurrencyPipe } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 
 import { AuctionService, RecentWin } from './core/auction/auction.service';
@@ -9,12 +9,13 @@ import { WalletService } from './core/wallet/wallet.service';
 @Component({
   selector: 'app-root',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterOutlet, RouterLink, RouterLinkActive, CurrencyPipe],
   template: `
-    <div class="min-h-screen">
+    <div class="page-shell flex min-h-screen flex-col">
       <!-- Live wins ticker -->
       @if (tickerItems().length > 0) {
-        <div class="live-ticker" aria-hidden="true">
+        <div class="live-ticker shrink-0" aria-hidden="true">
           <div class="live-ticker-track">
             @for (item of tickerItems(); track item.key) {
               <span class="inline-flex items-center gap-2 px-2 text-xs text-gray-300">
@@ -42,33 +43,28 @@ import { WalletService } from './core/wallet/wallet.service';
         </div>
       }
 
-      <header class="sticky top-0 z-50 border-b border-gold/10 bg-space-dark/90 backdrop-blur-xl">
-        <div class="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          <a routerLink="/" class="group flex items-center gap-2.5">
+      <header class="sticky top-0 z-50 w-full border-b border-gold/10 bg-space-dark/90 backdrop-blur-xl">
+        <div class="mx-auto flex w-full min-w-0 max-w-7xl items-center justify-between gap-1 px-3 py-2 sm:gap-3 sm:px-6 sm:py-3">
+          <a routerLink="/" class="group flex min-w-0 max-w-[42%] shrink items-center gap-1.5 sm:max-w-none sm:gap-2.5">
             <div
-              class="flex h-10 w-10 items-center justify-center rounded-xl bg-gold-shine font-display text-base font-black text-space-dark shadow-gold transition group-hover:animate-coin-flip"
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold-shine font-display text-xs font-black text-space-dark shadow-gold transition group-hover:animate-coin-flip sm:h-10 sm:w-10 sm:rounded-xl sm:text-base"
             >
               B
             </div>
-            <div>
-              <span class="font-display text-xl font-black text-gradient-neon">BitsAuction</span>
-              <p class="text-[9px] uppercase tracking-[0.3em] text-gold/70">Subastas premium</p>
+            <div class="min-w-0">
+              <span class="block truncate font-display text-base font-black text-gradient-neon sm:text-xl">BitsAuction</span>
+              <p class="hidden text-[9px] uppercase tracking-[0.3em] text-gold/70 md:block">Subastas premium</p>
             </div>
           </a>
 
-          <div class="flex items-center gap-2 sm:gap-3">
+          <div class="flex min-w-0 shrink-0 items-center gap-1 sm:gap-2">
             @if (isAuthenticated()) {
-              <div class="chip-balance">
-                <div class="relative z-10 flex h-7 w-7 items-center justify-center rounded-full bg-gold-shine text-xs font-black text-space-dark shadow-gold">
-                  ₿
-                </div>
-                <div class="relative z-10">
-                  <p class="text-[9px] uppercase tracking-widest text-gold/80">Tus fichas</p>
-                  <p class="font-display text-sm font-black text-gold-light">
-                    {{ currentUser()?.bit_balance ?? 0 }}
-                    <span class="text-[10px] font-semibold text-gold/70">Bits</span>
-                  </p>
-                </div>
+              <div class="chip-balance" title="Tus fichas">
+                <div class="chip-balance-icon">₿</div>
+                <p class="chip-balance-value">
+                  {{ currentUser()?.bit_balance ?? 0 }}
+                  <span class="chip-balance-unit">Bits</span>
+                </p>
               </div>
 
               <button
@@ -82,11 +78,11 @@ import { WalletService } from './core/wallet/wallet.service';
 
               <a
                 routerLink="/perfil"
-                class="group rounded-xl px-2 py-1 text-right transition hover:bg-white/5"
+                class="group hidden truncate rounded-xl px-1.5 py-1 text-right transition hover:bg-white/5 lg:block lg:max-w-none lg:px-2"
                 title="Ver mi perfil"
               >
-                <p class="text-sm font-semibold text-white group-hover:text-gold-light">{{ headerDisplayName() }}</p>
-                <p class="text-[10px] uppercase tracking-widest text-gray-500 group-hover:text-gray-400">{{ roleLabel() }}</p>
+                <p class="truncate text-xs font-semibold text-white group-hover:text-gold-light sm:text-sm">{{ headerDisplayName() }}</p>
+                <p class="hidden truncate text-[10px] uppercase tracking-widest text-gray-500 group-hover:text-gray-400 sm:block">{{ roleLabel() }}</p>
               </a>
 
               @if (isAdmin()) {
@@ -100,7 +96,7 @@ import { WalletService } from './core/wallet/wallet.service';
 
               <button
                 type="button"
-                class="rounded-xl border border-white/10 px-3 py-2 text-xs font-semibold text-gray-300 transition hover:border-white/20 hover:text-white"
+                class="rounded-lg border border-white/10 px-2 py-1 text-[10px] font-semibold text-gray-300 transition hover:border-white/20 hover:text-white sm:rounded-xl sm:px-3 sm:py-2 sm:text-xs"
                 (click)="logout()"
               >
                 Salir
@@ -121,7 +117,9 @@ import { WalletService } from './core/wallet/wallet.service';
         </div>
       </header>
 
-      <router-outlet />
+      <div class="page-content min-w-0 flex-1">
+        <router-outlet />
+      </div>
     </div>
   `,
 })
