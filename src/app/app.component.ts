@@ -80,10 +80,14 @@ import { WalletService } from './core/wallet/wallet.service';
                 {{ recharging() ? 'Recargando...' : '+ Recargar' }}
               </button>
 
-              <div class="hidden text-right sm:block">
-                <p class="text-sm font-semibold text-white">{{ currentUser()?.name }}</p>
-                <p class="text-[10px] uppercase tracking-widest text-gray-500">{{ roleLabel() }}</p>
-              </div>
+              <a
+                routerLink="/perfil"
+                class="group rounded-xl px-2 py-1 text-right transition hover:bg-white/5"
+                title="Ver mi perfil"
+              >
+                <p class="text-sm font-semibold text-white group-hover:text-gold-light">{{ headerDisplayName() }}</p>
+                <p class="text-[10px] uppercase tracking-widest text-gray-500 group-hover:text-gray-400">{{ roleLabel() }}</p>
+              </a>
 
               @if (isAdmin()) {
                 <a
@@ -135,6 +139,10 @@ export class AppComponent implements OnInit {
 
   readonly roleLabel = computed(() =>
     this.currentUser()?.role === 'admin' ? 'Administrador' : 'Jugador',
+  );
+
+  readonly headerDisplayName = computed(() =>
+    this.currentUser()?.role === 'admin' ? 'ADMINISTRADOR' : (this.currentUser()?.name ?? ''),
   );
 
   rechargeBits(): void {

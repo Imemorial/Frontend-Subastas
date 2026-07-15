@@ -1,6 +1,6 @@
 import { CurrencyPipe, DatePipe } from '@angular/common';
 
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 
 import { Router, RouterLink } from '@angular/router';
 
@@ -680,13 +680,15 @@ import { AuctionSummary } from '../../shared/models/auction.model';
 
 })
 
-export class HomePageComponent implements OnInit {
+export class HomePageComponent implements OnInit, OnDestroy {
 
   private readonly auctionService = inject(AuctionService);
 
   private readonly authService = inject(AuthService);
 
   private readonly router = inject(Router);
+
+  private refreshInterval?: ReturnType<typeof setInterval>;
 
 
 
@@ -726,7 +728,21 @@ export class HomePageComponent implements OnInit {
 
   ngOnInit(): void {
 
-    this.loadHomeData();
+    this.loadHomeData(true);
+
+    this.refreshInterval = setInterval(() => this.loadHomeData(false), 15000);
+
+  }
+
+
+
+  ngOnDestroy(): void {
+
+    if (this.refreshInterval) {
+
+      clearInterval(this.refreshInterval);
+
+    }
 
   }
 
@@ -750,11 +766,15 @@ export class HomePageComponent implements OnInit {
 
 
 
-  private loadHomeData(): void {
+  private loadHomeData(showLoading = true): void {
 
-    this.loading.set(true);
+    if (showLoading) {
 
-    this.loadError.set('');
+      this.loading.set(true);
+
+      this.loadError.set('');
+
+    }
 
 
 
@@ -764,7 +784,7 @@ export class HomePageComponent implements OnInit {
 
       pending -= 1;
 
-      if (pending === 0) {
+      if (pending === 0 && showLoading) {
 
         this.loading.set(false);
 

@@ -3,7 +3,7 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable, catchError, map, of, tap } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
-import { AuthResponse, AuthUser, LoginPayload, RegisterPayload } from './auth.models';
+import { AuthResponse, AuthUser, ForgotPasswordPayload, LoginPayload, MessageResponse, RegisterPayload, ResetPasswordPayload } from './auth.models';
 
 const TOKEN_STORAGE_KEY = 'bitsauction.auth.token';
 const USER_STORAGE_KEY = 'bitsauction.auth.user';
@@ -41,6 +41,14 @@ export class AuthService {
     );
   }
 
+  forgotPassword(payload: ForgotPasswordPayload): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${environment.apiUrl}/v1/auth/forgot-password`, payload);
+  }
+
+  resetPassword(payload: ResetPasswordPayload): Observable<MessageResponse> {
+    return this.http.post<MessageResponse>(`${environment.apiUrl}/v1/auth/reset-password`, payload);
+  }
+
   updateBitBalance(bitBalance: number): void {
     const currentUser = this.userState();
 
@@ -48,13 +56,15 @@ export class AuthService {
       return;
     }
 
-    const updatedUser: AuthUser = {
+    this.updateUser({
       ...currentUser,
       bit_balance: bitBalance,
-    };
+    });
+  }
 
-    this.userState.set(updatedUser);
-    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
+  updateUser(user: AuthUser): void {
+    this.userState.set(user);
+    localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(user));
   }
 
   private persistSession(response: AuthResponse): void {
@@ -83,7 +93,13 @@ export class AuthService {
     }
 
     try {
-      return JSON.parse(rawUser) as AuthUser;
+      const parsed = JSON.parse(rawUser) as AuthUser | { data?: AuthUser };
+
+      if (parsed && typeof parsed === 'object' && 'data' in parsed && parsed.data?.email) {
+        return parsed.data;
+      }
+
+      return parsed as AuthUser;
     } catch {
       localStorage.removeItem(USER_STORAGE_KEY);
       return null;

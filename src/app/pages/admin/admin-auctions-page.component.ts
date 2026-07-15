@@ -1,6 +1,6 @@
 import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
@@ -726,11 +726,13 @@ import {
 
 })
 
-export class AdminAuctionsPageComponent implements OnInit {
+export class AdminAuctionsPageComponent implements OnInit, OnDestroy {
 
   private readonly adminService = inject(AdminService);
 
   private readonly formBuilder = inject(FormBuilder);
+
+  private refreshInterval?: ReturnType<typeof setInterval>;
 
 
 
@@ -830,6 +832,26 @@ export class AdminAuctionsPageComponent implements OnInit {
     tomorrow.setHours(10, 0, 0, 0);
 
     this.form.controls.scheduled_at.setValue(this.toDatetimeLocal(tomorrow));
+
+    this.refreshInterval = setInterval(() => {
+
+      this.loadAuctions();
+
+      this.loadWeeklyPlan();
+
+    }, 15000);
+
+  }
+
+
+
+  ngOnDestroy(): void {
+
+    if (this.refreshInterval) {
+
+      clearInterval(this.refreshInterval);
+
+    }
 
   }
 
@@ -1047,7 +1069,11 @@ export class AdminAuctionsPageComponent implements OnInit {
 
           this.submitting.set(false);
 
-          this.successMessage.set('Subasta programada. Revisa el plan semanal arriba.');
+          this.successMessage.set(
+            raw.start_immediately
+              ? 'Subasta activada.'
+              : 'Subasta programada. Se activará sola a la fecha y hora indicada.',
+          );
 
           this.loadAuctions();
 
