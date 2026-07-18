@@ -1,28 +1,19 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, map, of, shareReplay, switchMap } from 'rxjs';
+import { Observable, map, shareReplay } from 'rxjs';
 
 import { environment } from '../../../environments/environment';
 import { resolveStorageUrl } from '../http/asset-url';
 import { AuctionSummary } from '../../shared/models/auction.model';
 import { ApiAuction } from './auction-api.models';
 
-interface FeaturedWinnerApi {
-  id: number;
-  winner_name: string;
-  product_name: string;
-  short_description: string | null;
-  image_url: string | null;
-  final_price: number;
-  retail_value: number;
-  discount_percent: number;
-}
+type ApiList<T> = { data: T[] } | T[];
 
 interface HomeApiResponse {
-  active: { data: ApiAuction[] } | ApiAuction[];
-  upcoming: { data: ApiAuction[] } | ApiAuction[];
-  winners: { data: FeaturedWinnerApi[] | ApiAuction[] } | (FeaturedWinnerApi[] | ApiAuction[]);
-  winners_type: 'showcase' | 'recent';
+  active: ApiList<ApiAuction>;
+  upcoming: ApiList<ApiAuction>;
+  winners: ApiList<ApiAuction>;
+  winners_type: 'recent';
 }
 
 export interface HomeData {
@@ -86,7 +77,9 @@ export class AuctionService {
         upcoming: this.unwrapList(response.upcoming)
           .filter((auction) => auction.product != null)
           .map((auction) => this.toUpcomingAuction(auction)),
-        winners: this.mapWinners(this.unwrapList(response.winners), response.winners_type),
+        winners: this.unwrapList(response.winners)
+          .filter((auction) => auction.product != null)
+          .map((auction) => this.toRecentWin(auction)),
       })),
     );
   }
@@ -136,17 +129,9 @@ export class AuctionService {
     );
   }
 
-  getFeaturedWinners(): Observable<RecentWin[]> {
-    return this.http
-      .get<{ data: FeaturedWinnerApi[] }>(`${environment.apiUrl}/v1/winner-showcases`)
-      .pipe(map((response) => response.data.map((item) => this.toFeaturedWin(item))));
-  }
-
   getHomeWinners(refresh = false): Observable<RecentWin[]> {
     if (refresh || !this.homeWinnersCache$) {
-      this.homeWinnersCache$ = this.getFeaturedWinners().pipe(
-        switchMap((featured) => (featured.length > 0 ? of(featured) : this.getRecentWins())),
-        catchError(() => this.getRecentWins()),
+      this.homeWinnersCache$ = this.getRecentWins().pipe(
         shareReplay({ bufferSize: 1, refCount: false }),
       );
     }
@@ -168,25 +153,12 @@ export class AuctionService {
     );
   }
 
-  private unwrapList<T>(payload: { data: T[] } | T[] | null | undefined): T[] {
+  private unwrapList<T>(payload: ApiList<T> | null | undefined): T[] {
     if (!payload) {
       return [];
     }
 
     return Array.isArray(payload) ? payload : (payload.data ?? []);
-  }
-
-  private mapWinners(
-    winners: FeaturedWinnerApi[] | ApiAuction[],
-    type: 'showcase' | 'recent',
-  ): RecentWin[] {
-    if (type === 'showcase') {
-      return (winners as FeaturedWinnerApi[]).map((item) => this.toFeaturedWin(item));
-    }
-
-    return (winners as ApiAuction[])
-      .filter((auction) => auction.product != null)
-      .map((auction) => this.toRecentWin(auction));
   }
 
   private toUpcomingAuction(auction: ApiAuction): UpcomingAuction {
@@ -254,26 +226,6 @@ export class AuctionService {
       totalBids: auction.total_bids,
       endedAt: auction.ended_at ? new Date(auction.ended_at) : null,
       discountPercent: this.discountPercent(shopValue, auction.current_price),
-    };
-  }
-
-  private toFeaturedWin(item: FeaturedWinnerApi): RecentWin {
-    const imageUrl =
-      resolveStorageUrl(item.image_url) ??
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=450&fit=crop';
-
-    return {
-      id: item.id,
-      productName: item.product_name,
-      productImageUrl: imageUrl,
-      retailValue: item.retail_value,
-      finalPrice: item.final_price,
-      winnerName: item.winner_name,
-      winnerAvatarUrl: resolveStorageUrl(item.image_url) ?? this.avatarUrl(item.winner_name),
-      totalBids: 0,
-      endedAt: null,
-      discountPercent: item.discount_percent,
-      shortDescription: item.short_description,
     };
   }
 

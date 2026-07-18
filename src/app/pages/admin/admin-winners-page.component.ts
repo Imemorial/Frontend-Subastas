@@ -16,8 +16,8 @@ import { WinnerShowcase } from '../../core/admin/admin-api.models';
           {{ editingId() ? 'Editar ganador' : 'Nuevo ganador destacado' }}
         </h2>
         <p class="mb-6 text-sm text-gray-400">
-          Estas historias aparecen en la home, en «Ganadores recientes». Usa fotos reales y frases cortas que
-          generen confianza y urgencia.
+          Gestión interna de historias. La home pública solo muestra ganadores reales de subastas
+          finalizadas.
         </p>
 
         <form class="space-y-4" [formGroup]="form" (ngSubmit)="submit()">
@@ -137,7 +137,7 @@ import { WinnerShowcase } from '../../core/admin/admin-api.models';
       <section class="glass-card p-6">
         <h2 class="mb-2 font-display text-xl font-bold text-white">Ganadores publicados</h2>
         <p class="mb-6 text-sm text-gray-400">
-          {{ showcases().length }} entradas · solo las activas se muestran en la web pública
+          {{ showcases().length }} entradas · no se publican automáticamente en la home
         </p>
 
         @if (loading()) {
